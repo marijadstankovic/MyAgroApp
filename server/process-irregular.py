@@ -1,3 +1,4 @@
+from datetime import datetime
 import requests
 import json
 import paho.mqtt.client as mqtt
@@ -40,7 +41,7 @@ def on_message(client, userdata, msg):
     
 airTemps = {}
 def on_air_temp_message(client, userdata, msg):
-    print("data recieved from edge")
+    print("data recieved from edge on air temp")
     message = json.loads(msg.payload)
     print(msg.topic)
     print(message)
@@ -49,68 +50,94 @@ def on_air_temp_message(client, userdata, msg):
 
 airMoists = {}
 def on_air_moist_message(client, userdata, msg):
-    print("data recieved from edge")
+    print("data recieved from edge on air moist")
     message = json.loads(msg.payload)
+    print(msg.topic)
+    print(message)
     airMoists[message[0]['bn']] = message
 
 soilMoists = {}
 def on_soil_moist_message(client, userdata, msg):
-    print("data recieved from edge")
+    print("data recieved from edge on soil moist")
     message = json.loads(msg.payload)
+    print(msg.topic)
+    print(message)
     soilMoists[message[0]['bn']] = message
     play_sprinkler(message[0]['bn'])
 
 def on_soil_temp_message(client, userdata, msg):
-    print("data recieved from edge")
+    print("data recieved from edge on soil temp")
     message = json.loads(msg.payload)
 
 def on_soil_ph_message(client, userdata, msg):
-    print("data recieved from edge")
+    print("data recieved from edge on soil ph")
     message = json.loads(msg.payload)
-    if message[0]['v'] <= acid: #gornja granica, bazno
-        print("Soil too much acid, needs farmer intervantion")
-    if message[0]['v'] >= alcaly: #donja granica, kiselo
-        command = json.dumps(
-        [{
-            "bn":"command",
-            "vs":"on"
-        },
-        message[1], #lat
-        message[2]  #long
-        ]) #add lat and long
-        print(command)
-        client.publish(
-            "channels/"+control_channel["id"]+"/messages/services/fermenter",
-            payload = command
-        )
-    
+    print(msg.topic)
+    print(message)
+    play_fermenter(message[0]['v'])
+
+def send_command(command, service):
+    json_command = json.dumps(
+    [{
+        "bn":"command",
+        "vs":command
+    },])
+    print(json_command)
+    print("channels/"+control_channel["id"]+"/messages/services/"+service)
+    client.publish(
+        "channels/"+control_channel["id"]+"/messages/services/"+service,
+        payload = json_command
+    )
+
 sprinkler_is_on = False
+sprinkler_time_on = None
 def play_sprinkler(key):
+    global sprinkler_is_on
     if (
         key not in airTemps
         or
         key not in soilMoists
-        or soilMoists[key][0]['v'] >= low_soil_moisture): #lower boundary
+        or soilMoists[key][0]['v'] > low_soil_moisture): #lower boundary
         return
     #check date time
+    global sprinkler_time_on
+    sprinkler_time_on = datetime.now()
+    if(not sprinkler_is_on):
+        sprinkler_is_on = True
+        send_command("on", "sprinkler")
+
+fermenter_is_on = False
+fermenter_time_on = None
+def play_fermenter(value):    
+    global fermenter_is_on
+    if value <= acid:
+        print("Soil too much acid, needs farmer intervantion")
     
+    global fermenter_time_on
+    if value >= alcaly:
+        fermenter_time_on = datetime.now()
+        if(not fermenter_is_on):
+            send_command("on", "fermenter")
+            fermenter_is_on = True
+    # else:
+    #     if(fermenter_is_on):
+    #         # send_command("off", "fermenter")
+    #         fermenter_is_on = False
+
+def check_for_off():
+    global sprinkler_time_on
     global sprinkler_is_on
-    sprinkler_is_on = True
-    command = json.dumps(
-    [{
-        "bn":"command",
-        "vs":"on"
-    },
-    # airTemps[key][1], #lat
-    # airTemps[key][2]  #long
-    ]) #add lat and long
-    print(command)
-    print("channels/"+control_channel["id"]+"/messages/services/sprinkler")
-    client.publish(
-        "channels/"+control_channel["id"]+"/messages/services/sprinkler",
-        payload = command
-    )
-    
+    global fermenter_time_on
+    global fermenter_is_on
+    now = datetime.now()
+    if(sprinkler_is_on and sprinkler_time_on != None and (now - sprinkler_time_on).total_seconds() > 6):
+        sprinkler_is_on = False
+        send_command("off", "sprinkler")
+
+    if(fermenter_is_on and sprinkler_time_on != None and (now - fermenter_time_on).total_seconds() > 6):
+        fermenter_is_on = False
+        send_command("off", "fermenter")
+
 client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
@@ -146,6 +173,7 @@ def clean_variables():
     sprinkler_is_on = True
     
 schedule.every(3).minutes.do(clean_variables)
+schedule.every(1).second.do(check_for_off)
 while True :
     schedule.run_pending()
     time.sleep(1)

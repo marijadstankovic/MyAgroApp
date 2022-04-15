@@ -57,8 +57,10 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     
 def on_air_temp(client, userdata, msg):
-    print('on air message')
+    print('on air temp message')
     message = json.loads(msg.payload)
+    print(msg.topic)
+    print(message)
     if(message[0]['v'] >= high_air_temp):
         publish_data(msg.payload)
     

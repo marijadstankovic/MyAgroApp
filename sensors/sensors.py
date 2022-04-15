@@ -72,7 +72,7 @@ def send_data(unit, value, time, channel, thing_index):
     message = json.dumps(
             [{"bn": "s:" + str(thing_index),
             "bt": time,
-            "n": channel["name"],
+            # "n": channel["name"],
             "u": unit,
             "v": int(value)
             },

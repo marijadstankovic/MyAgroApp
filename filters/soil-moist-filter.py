@@ -43,7 +43,6 @@ soil_moist_subtopic = "channels/"+soil_moist_channel['id']+"/messages"
 
 def publish_data(message):
     print("sending to server")
-    print(message)
     client.publish(
         "channels/"+export_channel['id']+"/messages/soil-moisture",
         payload=message)
@@ -57,8 +56,9 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     
 def on_soil_moist_message(client, userdata, msg):
-    print('on soil message')
+    print('on soil moist message')
     message = json.loads(msg.payload)
+    print(message)
     if message[0]['v'] >= high_soil_moist or message[0]['v'] <= low_soil_moist :
         publish_data(msg.payload)
     

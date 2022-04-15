@@ -41,7 +41,7 @@ print(export_channel)
 soil_temp_subtopic = "channels/"+soil_temp_channel['id']+"/messages"
 
 def publish_data(message):
-    print(message)
+    print("sending data to server")
     client.publish(
         "channels/"+export_channel['id']+"/messages/soil-temperature",
         payload=message)
@@ -55,7 +55,7 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     
 def on_soil_temp(client, userdata, msg):
-    print('on soil message')
+    print('on soil temp message')
     message = json.loads(msg.payload)
     print(msg.topic)
     print(message)

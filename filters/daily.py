@@ -22,7 +22,7 @@ def average():
     print(value)
     message = json.dumps(
     [{
-    "u": "degree celsius",
+    "u": "Cel",
     "v": value
     }])
     print(message)

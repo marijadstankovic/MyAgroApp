@@ -43,7 +43,6 @@ soil_ph_subtopic = "channels/"+soil_ph_channel['id']+"/messages"
 
 def publish_data(message):
     print("sending data to server")
-    print(message)
     client.publish(
         "channels/"+export_channel['id']+"/messages/soil-pH",
         payload=message)
@@ -57,10 +56,11 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     
 def on_soil_ph_message(client, userdata, msg):
-    print('on soil message')
+    print('on soil ph message')
     message = json.loads(msg.payload)
-    if (message[0]['v'] >= acid_soil_ph
-        or message[0]['v'] <= alcaly_soil_ph) :
+    print(message)
+    if (message[0]['v'] <= acid_soil_ph
+        or message[0]['v'] >= alcaly_soil_ph) :
         publish_data(msg.payload)
     
 

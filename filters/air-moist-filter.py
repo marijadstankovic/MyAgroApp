@@ -41,7 +41,7 @@ print(export_channel)
 air_moist_subtopic = "channels/"+air_moist_channel['id']+"/messages"
 
 def publish_data(message):
-    print(message)
+    print("sending")
     client.publish(
         "channels/"+export_channel['id']+"/messages/air-moisture",
         payload=message)
@@ -55,7 +55,7 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
     
 def on_air_moist_message(client, userdata, msg):
-    print('on air message')
+    print('on air moist message')
     message = json.loads(msg.payload)
     print(msg.topic)
     print(message)
